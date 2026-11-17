@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NOMADX Signage</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0A0A0B;color:#EDE8E0;font-family:Pretendard,system-ui,-apple-system,'Noto Sans KR',sans-serif;cursor:none}
+#stage{position:fixed;inset:0}
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:6vh 6vw;opacity:0;transition:opacity .6s;background:#0A0A0B}
+.slide.on{opacity:1}
+.slide h1{font-size:8vh;font-weight:800;line-height:1.15;margin-bottom:3vh}
+.slide p{font-size:4.2vh;opacity:.85;line-height:1.4;white-space:pre-line}
+.slide>img.full,.slide>video.full{position:absolute;inset:0;width:100%;height:100%}
+.logo{height:30vh;width:30vh;border-radius:50%;margin-bottom:5vh;display:block}
+.wm{font-family:Poppins,Pretendard,sans-serif;font-weight:800;font-size:11vh;letter-spacing:-.02em;line-height:1;color:#fff}
+.tag{margin-top:3.4vh;font-size:3.6vh;color:#EDE8E0;opacity:.75}
+.clock{font-family:Poppins,Pretendard,sans-serif;font-size:22vh;font-weight:700;color:#EDE8E0;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.date{font-size:5vh;margin-top:2vh;opacity:.8}
+.minilogo{position:absolute;top:4vh;left:4vh;height:9vh;width:9vh;border-radius:50%}
+#ticker{position:fixed;left:0;right:0;bottom:0;height:9vh;background:rgba(10,10,11,.85);overflow:hidden;white-space:nowrap;display:none;align-items:center;border-top:1px solid #26262A}
+#ticker span{display:inline-block;padding-left:100%;font-size:4.2vh;font-weight:700;color:#EDE8E0;animation:tk 28s linear infinite}
+@keyframes tk{to{transform:translateX(-100%)}}
+</style></head><body>
+<div id="stage"></div><div id="ticker"><span id="tk"></span></div>
+<script>
+(function(){
+var P=new URLSearchParams(location.search),SID=P.get('s')||'reception';
+var CFG=null,list=[],idx=-1,timer=null,stage=document.getElementById('stage');
+function el(t,c,h){var e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e}
+function esc(s){return String(s==null?'':s).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
+function load(){
+ fetch('playlist.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){
+  try{localStorage.setItem('cfg',JSON.stringify(j))}catch(e){}apply(j)
+ }).catch(function(){
+  try{var j=JSON.parse(localStorage.getItem('cfg'));if(j)apply(j)}catch(e){}
+ })
+}
+function apply(j){
+ CFG=j;var sc=(j.screens||{})[SID]||{};
+ var nl=sc.playlist||[];
+ if(JSON.stringify(nl)!==JSON.stringify(list)){list=nl;if(idx<0)next()}
+ var tk=document.getElementById('ticker');
+ if(sc.ticker){document.getElementById('tk').textContent=sc.ticker;tk.style.display='flex'}else tk.style.display='none';
+}
+function next(){
+ clearTimeout(timer);
+ if(!list.length){stage.innerHTML='';var d0=el('div','slide on','<div class="wm">NOMADX</div>');stage.appendChild(d0);timer=setTimeout(next,5000);return}
+ idx=(idx+1)%list.length;var s=list[idx],d=el('div','slide'),dur=(s.duration||10)*1000,t=s.type;
+ if(s.bg)d.style.background=s.bg;
+ if(t==='brand'){d.innerHTML='<img class="logo" src="'+esc(s.logo||'x.png')+'" alt=""><div class="wm">'+esc(s.title||'NOMADX')+'</div>'+(s.body?'<div class="tag">'+esc(s.body)+'</div>':'')}
+ else if(t==='clock'){var c=el('div','clock'),dt=el('div','date');d.appendChild(el('img','minilogo')).src='x.png';d.appendChild(c);d.appendChild(dt);
+  var upd=function(){var n=new Date();c.textContent=('0'+n.getHours()).slice(-2)+':'+('0'+n.getMinutes()).slice(-2);dt.textContent=(n.getMonth()+1)+'월 '+n.getDate()+'일 '+'일월화수목금토'[n.getDay()]+'요일'};upd();d._i=setInterval(upd,1000)}
+ else if(t==='image'){var im=el('img','full');im.src=s.src;im.style.objectFit=s.fit||'cover';d.appendChild(im)}
+ else if(t==='video'){var v=el('video','full');v.src=s.src;v.muted=true;v.autoplay=true;v.playsInline=true;v.style.objectFit=s.fit||'cover';d.appendChild(v);
+  v.onended=function(){next()};v.onerror=function(){timer=setTimeout(next,2000)};dur=(s.maxDuration||600)*1000;v.play&&v.play().catch(function(){})}
+ else{d.innerHTML=(s.title?'<h1>'+esc(s.title)+'</h1>':'')+(s.body?'<p>'+esc(s.body)+'</p>':'')}
+ stage.appendChild(d);requestAnimationFrame(function(){d.classList.add('on')});
+ var old=[].slice.call(stage.children).filter(function(x){return x!==d});
+ setTimeout(function(){old.forEach(function(x){if(x._i)clearInterval(x._i);x.remove()})},700);
+ timer=setTimeout(next,dur);
+}
+function hb(){
+ if(!CFG||!CFG.heartbeatUrl)return;
+ var u=CFG.heartbeatUrl+(CFG.heartbeatUrl.indexOf('?')<0?'?':'&')+'screen='+encodeURIComponent(SID)+'&token='+encodeURIComponent(CFG.token||'')+'&w='+innerWidth+'&h='+innerHeight+'&t='+Date.now();
+ fetch(u,{mode:'no-cors',cache:'no-store'}).catch(function(){})
+}
+function wake(){try{if(navigator.wakeLock)navigator.wakeLock.request('screen').catch(function(){})}catch(e){}}
+load();setInterval(load,300000);setInterval(hb,60000);setTimeout(hb,5000);
+wake();document.addEventListener('visibilitychange',wake);
+setTimeout(function(){location.reload()},6*3600*1000);
+})();
+</script></body></html>

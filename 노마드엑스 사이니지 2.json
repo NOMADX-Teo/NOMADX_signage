@@ -1,0 +1,16 @@
+{
+ "heartbeatUrl": "",
+ "token": "",
+ "screens": {
+  "reception": {
+   "ticker": "",
+   "playlist": [
+    {"type":"video","src":"quad.mp4","maxDuration":120},
+    {"type":"clock","duration":10}
+   ]
+  },
+  "lobby": {"ticker":"","playlist":[{"type":"brand","title":"NOMADX","body":"We help people live anywhere","duration":12},{"type":"clock","duration":10}]},
+  "gym": {"ticker":"","playlist":[{"type":"video","src":"quad.mp4","maxDuration":120}]},
+  "cafeteria": {"ticker":"","playlist":[{"type":"brand","title":"NOMADX","body":"We help people live anywhere","duration":12},{"type":"clock","duration":10}]}
+ }
+}
